@@ -1,28 +1,16 @@
 import requests
 import os
-import uuid
-from urllib.parse import quote
-from .logging_setup import setup_logging
+from logger import setup_logging
 
 logger = setup_logging()
 download_progresses = {}
 
-def sanitize_filename(url):
-    sanitized_url = quote(url, safe='')
-    return sanitized_url
-
-def download_video(url, referer, save_path, download_id, file_name=None):
+def download_video(url, referer, save_path, download_id):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Referer': referer
     }
-    
-    if not file_name:
-        sanitized_url = sanitize_filename(url)
-        unique_id = uuid.uuid4()
-        file_name = f"{sanitized_url}_{unique_id}.mp4"
-    
-    local_filename = os.path.join(save_path, file_name)
+    local_filename = os.path.join(save_path, url.split('/')[-1])
 
     with requests.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
