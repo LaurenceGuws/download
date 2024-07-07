@@ -87,10 +87,6 @@ logs/
 # Local database
 *.sqlite3
 
-# Temporary files
-*.tmp
-*.temp
-
 # Media
 *.mp4
 *.avi
