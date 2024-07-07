@@ -110,8 +110,6 @@ staticfiles/
 *.svg
 *.otf
 
-# HTML artifacts
-*.html
 
 # Other
 *.bak

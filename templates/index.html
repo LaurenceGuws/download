@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Video Scraper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-purple': '#1E1E2E',
+                        'light-purple': '#2A2A3C',
+                        'neon-purple': '#8A2BE2',
+                        'dark-gray': '#333333',
+                    },
+                    fontFamily: {
+                        'fira': ['"Fira Code"', 'monospace'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            background-color: #1E1E2E;
+            color: #E0E0E0;
+            font-family: 'Fira Code', monospace;
+        }
+        .neon-border {
+            box-shadow: 0 0 5px #8A2BE2, 0 0 10px #8A2BE2, 0 0 15px #8A2BE2;
+        }
+        .neon-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 5px #8A2BE2;
+            }
+            50% {
+                box-shadow: 0 0 20px #8A2BE2;
+            }
+            100% {
+                box-shadow: 0 0 5px #8A2BE2;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center text-neon-purple neon-border p-4 rounded">Enhanced Video Scraper</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-light-purple p-6 rounded-lg shadow-md neon-border">
+                <h2 class="text-xl font-semibold mb-4 text-neon-purple">Scrape and Download Videos</h2>
+                <div id="step1">
+                    <form id="fetchForm" class="space-y-4">
+                        <div>
+                            <label for="url" class="block text-sm font-medium text-gray-300">URL to scrape:</label>
+                            <input type="text" id="url" name="url" required class="mt-1 block w-full rounded-md bg-dark-gray border-gray-600 text-white focus:border-neon-purple focus:ring focus:ring-neon-purple focus:ring-opacity-50">
+                        </div>
+                        <button type="submit" class="w-full bg-neon-purple hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline neon-pulse">
+                            Fetch Videos
+                        </button>
+                    </form>
+                </div>
+                <div id="step2" class="hidden space-y-4">
+                    <h3 class="text-lg font-semibold text-neon-purple">Select Videos to Download</h3>
+                    <div id="videoList" class="space-y-2"></div>
+                    <div>
+                        <label for="save_path" class="block text-sm font-medium text-gray-300">Save path:</label>
+                        <input type="text" id="save_path" name="save_path" required class="mt-1 block w-full rounded-md bg-dark-gray border-gray-600 text-white focus:border-neon-purple focus:ring focus:ring-neon-purple focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="file_name" class="block text-sm font-medium text-gray-300">File name (optional):</label>
+                        <input type="text" id="file_name" name="file_name" class="mt-1 block w-full rounded-md bg-dark-gray border-gray-600 text-white focus:border-neon-purple focus:ring focus:ring-neon-purple focus:ring-opacity-50">
+                    </div>
+                    <button id="downloadButton" class="w-full bg-neon-purple hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline neon-pulse">
+                        Download Selected Videos
+                    </button>
+                    <button id="backButton" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Back to URL Input
+                    </button>
+                </div>
+                <div id="result" class="mt-4 text-center text-neon-purple"></div>
+            </div>
+            <div class="bg-light-purple p-6 rounded-lg shadow-md neon-border">
+                <h2 class="text-xl font-semibold mb-4 text-neon-purple">Download Progress</h2>
+                <div id="progressBars" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const progressBars = document.getElementById('progressBars');
+        let eventSource;
+
+        document.getElementById('fetchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/fetch_videos', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayVideoList(data.videos);
+                } else {
+                    document.getElementById('result').textContent = data.message;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = 'An error occurred';
+            });
+        });
+
+        function displayVideoList(videos) {
+            const videoList = document.getElementById('videoList');
+            videoList.innerHTML = '';
+            videos.forEach((url, index) => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" class="form-checkbox text-neon-purple" name="video" value="${url}">
+                        <span class="ml-2 text-gray-300">Video ${index + 1}</span>
+                    </label>
+                `;
+                videoList.appendChild(div);
+            });
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+        }
+
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            const selectedVideos = Array.from(document.querySelectorAll('input[name="video"]:checked')).map(el => el.value);
+            const savePath = document.getElementById('save_path').value;
+            const fileName = document.getElementById('file_name').value;
+            const webUrl = document.getElementById('url').value;
+
+            if (selectedVideos.length === 0) {
+                alert('Please select at least one video to download.');
+                return;
+            }
+
+            if (!savePath) {
+                alert('Please enter a save path.');
+                return;
+            }
+
+            fetch('/download_videos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    urls: selectedVideos,
+                    save_path: savePath,
+                    web_url: webUrl,
+                    file_name: fileName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').textContent = data.message;
+                if (data.status === 'success') {
+                    initializeProgressBars(data.download_ids);
+                    startProgressEventSource();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = 'An error occurred';
+            });
+        });
+
+        function initializeProgressBars(downloadIds) {
+            progressBars.innerHTML = '';
+            downloadIds.forEach(id => {
+                const progressBar = document.createElement('div');
+                progressBar.innerHTML = `
+                    <div class="text-sm font-medium text-gray-300 mb-1">${id}</div>
+                    <div class="w-full bg-gray-700 rounded-full h-2.5">
+                        <div id="${id}_progress" class="bg-neon-purple h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <div id="${id}_percentage" class="text-xs font-medium text-gray-300 mt-1">0%</div>
+                `;
+                progressBars.appendChild(progressBar);
+            });
+        }
+
+        function startProgressEventSource() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            eventSource = new EventSource('/download_progress');
+            eventSource.onmessage = function(event) {
+                const progresses = JSON.parse(event.data);
+                updateProgressBars(progresses);
+            };
+        }
+
+        function updateProgressBars(progresses) {
+            for (const [id, progress] of Object.entries(progresses)) {
+                const progressBar = document.getElementById(`${id}_progress`);
+                const percentageText = document.getElementById(`${id}_percentage`);
+                if (progressBar && percentageText) {
+                    progressBar.style.width = `${progress}%`;
+                    percentageText.textContent = `${progress.toFixed(1)}%`;
+                }
+            }
+        }
+
+        document.getElementById('backButton').addEventListener('click', function() {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('result').textContent = '';
+        });
+    </script>
+</body>
+</html>
